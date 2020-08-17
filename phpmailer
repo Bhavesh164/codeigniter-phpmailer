@@ -1,0 +1,81 @@
+$template_id=$_REQUEST['template_id'];
+        $account_id=$_REQUEST['account_id'];
+        $res=$this->db->query("select mt_account_no,password from accounts where account_id='$account_id'")->row();
+        if(!empty($res)){
+          $mt_account_no=$res->mt_account_no;  
+          $mt_password=$res->password;  
+        }
+        $res1=$this->db->query("select template_data from email_templates where template_id='$template_id'")->row();
+        $template_data='';
+        if(!empty($res1)){
+            $template_data=$res1->template_data;
+        }
+        // Load PHPMailer library
+        $this->load->library('phpmailer_lib');
+        
+        // PHPMailer object
+        $mail = $this->phpmailer_lib->load();
+              
+        $mail->setFrom('cmsprime@tricksntechs.com', 'CMS Prime');
+        //$mail->addReplyTo('info@example.com', 'CodexWorld');
+        
+        // Add a recipient
+        $mail->addAddress('ashisharora119@gmail.com');
+        
+        // Add cc or bcc 
+        //$mail->addCC('cc@example.com');
+        //$mail->addBCC('bcc@example.com');
+        
+        // Email subject
+        $mail->Subject = 'IB account Template';
+        $files=[];
+        if(!empty($_FILES['attachments'])){
+            $files= $this->restructureArray($_FILES['attachments']);
+        }   
+        if(!empty($files)){
+            foreach($files as $key=>$file){
+                //attachments
+                $mail->addAttachment(
+                    $file['tmp_name'],
+                    $file['name'],
+                );
+            }
+        }
+
+        $html='<!DOCTYPE html>
+                <html lang="en">
+                <head>
+                </head>
+                <body>
+                ';
+        
+        $template_data=str_replace("{MTACCOUNT}",$mt_account_no,$template_data);
+        $template_data=str_replace("{MTPASSWORD}",$mt_password,$template_data);
+        $html.=$template_data;
+        $html.='</body>
+                </html>';
+        
+        // Set email format to HTML
+        $mail->isHTML(true);
+        $mail->Body = $html;
+        // Send email
+        if(!$mail->send()){
+            // echo 'Message could not be sent.';
+            // echo 'Mailer Error: ' . $mail->ErrorInfo;
+            $array=array("status"=>0,"msg"=>"Something went wrong");
+        }else{
+            $array=array("status"=>1,"msg"=>"Email send successfully");
+        }
+        echo json_encode($array);
+        die;
+    }
+
+    private function restructureArray(array $arr){
+        $result=array();
+        foreach($arr as $key=>$value){
+            for($i=0;$i<count($value);$i++){
+                $result[$i][$key]=$value[$i];
+            }
+        }
+        return $result;
+    }
